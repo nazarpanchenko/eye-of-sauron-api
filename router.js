@@ -1,7 +1,8 @@
 const express = require('express');
 const app = express();
 const session = require('express-session');
-const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+
 const PORT = process.env.PORT || 8080;
 const authRouter = require('./routes/auth.js');
 const routes = require('./routesList.js');
@@ -12,8 +13,9 @@ app.use(session({
 	saveUninitialized: true
 }));
 
-app.use(bodyParser.urlencoded({ extended : true }));
-app.use(bodyParser.json());
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded());
 app.set('port', PORT);
 
 app.listen(PORT, function(err) {
@@ -21,6 +23,16 @@ app.listen(PORT, function(err) {
 		console.log(err);
 	}
     console.log('Server listening on port ', PORT);
+});
+
+app.get('/', function(req, res) {
+	if (req.session.pageViews) {
+	   req.session.pageViews++;
+	   res.send('You visited this page ' + req.session.pageViews + ' times');
+	} else {
+	   req.session.pageViews = 1;
+	   res.send('You visited this page ' + req.session.pageViews + ' times');
+	}
 });
 
 // Registering API routes

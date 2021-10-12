@@ -8,51 +8,28 @@ authRouter.post('/sign-up', [upload.none()],
     function(req, res) {
        const body = JSON.parse(req.body.user);
        const { username, password } = body;
-
-       let allUsers = [];
-       let createdUser = {};
-       let createdUserId = null;
        
        const createUser = `INSERT INTO users
           (username, password, created_at) 
           VALUES(\'${username}'\, \'${password}'\, NOW())
        `;
 
-       const getAllUsers = `SELECT * FROM users`;
-
        const getCreatedUser = `SELECT * FROM users
-          WHERE id = ${createdUserId}
+          WHERE username = \'${username}'
+          LIMIT 1
        `;
 
         try {
-            DB.query(createUser, function(err) {
-                if (err) {
-                    throw err;
-                }
-            });
-
-            DB.query(getAllUsers, function(err, results) {
-                if (err) {
-                    throw err;
-                } else {
-                    allUsers = [ ...results ];
-                }
-            });
-            createdUserId = allUsers[allUsers.length - 1];
+            DB.query(createUser);
 
             DB.query(getCreatedUser, function(err, results) {
-                if (err) {
-                    throw err;
-                } else {
-                    createdUser = results[0];
-                }
+                const createdUser = results[0];
+                console.log(createdUser);
+                res.status(200).send(createdUser[createdUser.length - 1]);
             });
 
-            res.status(200).send(createdUser);
         } catch(err) {
             res.status(400).send({ status: 'signup failed', details: err.message });
-        } finally {
-            DB.end();
         }
     }
 );
@@ -68,22 +45,16 @@ authRouter.post('/sign-in', [upload.none()],
        `;
 
        try {
-            DB.query(signInQuery, 
-                function(err, results) {
-                    if (err) {
-                        throw err;
-                    } else {
-                        const authorizedUser = results[0];
-                        req.session.userId = authorizedUser.userId;
-                        req.session.user = authorizedUser;
-                        res.status(200).send(authorizedUser);
-                    }
-                }
-            );
+            DB.query(signInQuery, function(err, results) {
+                const authorizedUser = results[0];
+                
+                req.session.userId = authorizedUser.userId;
+                req.session.user = authorizedUser;
+                res.status(200).send(authorizedUser);
+            });
+
        } catch(err) {
             res.status(401).send({ status: 'authorization failed', details: err.message });
-       } finally {
-           DB.end();
        }
     }
 );
@@ -91,7 +62,7 @@ authRouter.post('/sign-in', [upload.none()],
 authRouter.get('/logout', 
     function(req, res) {
         req.session.destroy(function(err) {
-            res.send('You have been logged out.');
+            res.send({ status: 'Your user session have been terminated.' });
         });
     }
 );
